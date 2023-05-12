@@ -2,12 +2,13 @@
 #include "Scanner.h"
 #include <iostream>
 #include <fstream>
-namespace fs = std::filesystem;
-
+#include "FileTypeList.h"
+#include "Logger.h"
 using std::string;
 using std::vector;
+namespace fs = std::filesystem;
 
-static vector<FileType*>* types;
+static FileTypeList* types = new FileTypeList();
 
 vector<FileType*>* Scanner::scan(string path)
 {
@@ -17,14 +18,22 @@ vector<FileType*>* Scanner::scan(string path)
 vector<FileType*>* Scanner::scan(string path, string filter)
 {
 	get_files(path, filter);
-	return types;
+	return types->get();
 }
 
 void Scanner::print(vector<FileType*>* types)
 {
+	std::sort(types->begin(), types->end(), [](const FileType* a, const FileType* b)
+		{
+			return a->lines > b->lines;
+		});
 	for (int i = 0; i < types->size(); i++)
 	{
 		FileType* type = types->at(i);
+		Logger::log.info("Extension: {}", type->extension);
+		Logger::log.info("\tFiles: {}", type->files);
+		Logger::log.info("\tLines: {}", type->lines);
+		Logger::log.info("\tBytes: {}", type->bytes);
 	}
 }
 
@@ -36,7 +45,7 @@ void Scanner::get_files(string path, string filter)
 		{
 			if (filter.empty() || entry.path().extension().string() == filter)
 			{
-				types->push_back(parse_file(entry.path()));
+				types->add(parse_file(entry.path()));
 			}
 		}
 		else if (fs::is_directory(entry.path()))
@@ -49,11 +58,10 @@ void Scanner::get_files(string path, string filter)
 FileType* Scanner::parse_file(fs::path filepath)
 {
 	auto type = new FileType();
-	type->path = filepath.string();
-	type->name = filepath.filename().string();
 	type->extension = filepath.extension().string();
 	type->bytes = fs::file_size(filepath);
 	type->lines = Scanner::get_lines(filepath);
+	type->files = 1;
 	return type;
 }
 
