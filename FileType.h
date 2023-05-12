@@ -5,9 +5,8 @@ using std::string;
 struct FileType
 {
 public:
-	string name;
 	string extension;
-	string path;
 	long lines;
 	long bytes;
+	int files;
 };
