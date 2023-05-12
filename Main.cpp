@@ -2,19 +2,23 @@
 
 /// Default
 #include <iostream>
-
-/// SPD Logger
-#include "Logger.h"
-
+#include "Scanner.h"
 int main(int length, char* args[])
 {
-	spdlog::logger log = Logger::log;
+	if (length > 0)
+	{
+		vector<FileType*>* files;
+		if (length > 1)
+		{
+			files = Scanner::scan(string(args[0]), string(args[1]));
+		}
+		else
+		{
+			files = Scanner::scan(string(args[0]));
+		}
+		Scanner::print(files);
+		return 0;
+	}
 
-	log.trace("Hello World");
-	log.debug("Hello World");
-	log.info("Hello World");
-	log.warn("Hello World");
-	log.error("Hello World");
-
-	return 0;
+	return 2;
 }
