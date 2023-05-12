@@ -3,6 +3,7 @@
 #include "Logger.h"
 #include <iostream>
 #include <chrono>
+#include <cstdlib>
 
 void parse_path(string& path)
 {
@@ -53,5 +54,12 @@ int main(int length, char* args[])
 	auto end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 	Logger::log.info("Process finished after {}ms", duration);
+
+#ifdef _WIN32
+	std::system("pause");
+#else
+	std::system("read - p 'Press Enter to continue...' key");
+#endif
+
 	return 0;
 }
