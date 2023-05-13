@@ -1,9 +1,12 @@
 // LFInteractive LLC. - All Rights Reserved
 #include "Scanner.h"
-#include "Logger.h"
 #include <iostream>
 #include <chrono>
 #include <cstdlib>
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 void parse_path(string& path)
 {
@@ -47,16 +50,19 @@ int main(int length, char* args[])
 	}
 
 	auto start = std::chrono::high_resolution_clock::now();
-	Logger::log.info("Scanning '{}'", path);
-	Logger::log.warn("This might take a moment");
+	std::cout << "\n\n\033[97mScanning \033[94m" << path << std::endl;
+	std::cout << "\033[33mThis might take a moment!" << std::endl;
 	vector<FileType*>* files = Scanner::scan(path, filter);
 	Scanner::print(files);
 	auto end = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-	Logger::log.info("Process finished after {}ms", duration);
+	std::cout << "\033[94mProcess finished after \033[92m" << duration << "ms" << "\033[0m" << std::endl;
 
 #ifdef _WIN32
-	std::system("pause");
+	if (GetConsoleWindow() != NULL)
+	{
+		std::system("pause");
+	}
 #else
 	std::system("read - p 'Press Enter to continue...' key");
 #endif
