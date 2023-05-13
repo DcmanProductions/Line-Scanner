@@ -1,9 +1,13 @@
 // LFInteractive LLC. - All Rights Reserved
 #include "Scanner.h"
-#include <iostream>
 #include <fstream>
 #include "FileTypeList.h"
-#include "Logger.h"
+#include <sstream>
+
+#include <iostream>
+#include <iomanip>
+#include <locale>
+
 using std::string;
 using std::vector;
 namespace fs = std::filesystem;
@@ -27,14 +31,26 @@ void Scanner::print(vector<FileType*>* types)
 		{
 			return a->lines > b->lines;
 		});
+
+	auto builder = std::stringstream();
+
 	for (int i = 0; i < types->size(); i++)
 	{
 		FileType* type = types->at(i);
-		Logger::log.info("Extension: {}", type->extension);
-		Logger::log.info("\tFiles: {}", type->files);
-		Logger::log.info("\tLines: {}", type->lines);
-		Logger::log.info("\tBytes: {}", type->bytes);
+		builder
+			<< "\033[92m" << type->extension << ":\n"
+			<< "\033[93m" << "\t- " << type->lines << " Line(s)\n"
+			<< "\033[96m" << "\t- " << type->files << " File(s)\n"
+			<< "\033[95m" << "\t- " << type->bytes << " Byte(s)\n"
+			;
 	}
+
+	builder << "\033[0m";
+
+	// Create a new locale with comma as the thousands separator
+	std::locale comma_locale(std::locale(), new std::numpunct<char>(','));
+	std::cout.imbue(comma_locale);
+	std::cout << builder.str();
 }
 
 void Scanner::get_files(string path, string filter)
