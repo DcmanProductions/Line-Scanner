@@ -1,58 +1,81 @@
 ﻿// LFInteractive LLC. - All Rights Reserved
+using System.Text;
+
 internal class Program
 {
-    record File(int lines, string extension, long characters, int files);
+    private record FileData(int Lines, string Extension, long Characters, int Files);
 
-    private static void Main()
+    private static async Task Main()
     {
-        DateTime time = DateTime.Now;
-        File[] lines = GetLines(Directory.GetFiles(Environment.CurrentDirectory, "*.*", SearchOption.AllDirectories));
-        foreach (File line in lines)
+        var time = DateTime.Now;
+        var files = Directory.GetFiles(Environment.CurrentDirectory, "*.*", SearchOption.AllDirectories);
+        var fileData = await GetFileDataAsync(files);
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        foreach (var data in fileData)
         {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"{line.extension}:");
-
+            Console.WriteLine($"{data.Extension}:");
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"\t- {line.lines:N0} Line(s)");
-
+            Console.WriteLine($"\t- {data.Lines:N0} Line(s)");
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"\t- {line.characters:N0} Character(s)");
-
+            Console.WriteLine($"\t- {data.Characters:N0} Character(s)");
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine($"\t- {line.files:N0} File(s)");
+            Console.WriteLine($"\t- {data.Files:N0} File(s)");
+            Console.ForegroundColor = ConsoleColor.Green;
         }
         Console.ResetColor();
-        TimeSpan span = new(DateTime.Now.Ticks - time.Ticks);
-        Console.WriteLine($"Process finished after {span.TotalMilliseconds}ms");
+
+        var span = DateTime.Now - time;
+        Console.WriteLine($"Process finished after {span.TotalMilliseconds:N2}ms");
     }
 
-    private static File[] GetLines(string[] files)
+    private static async Task<FileData[]> GetFileDataAsync(string[] files)
     {
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"Calculating lines from {files.Length:N0} files");
-        List<File> lines = new();
-        foreach (string file in files)
+
+        var fileData = new Dictionary<string, FileData>();
+        var tasks = new List<Task>();
+
+        foreach (var file in files)
         {
-            string text = "";
-            using (FileStream fs = new(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            tasks.Add(Task.Run(async () =>
             {
-                using StreamReader reader = new(fs);
-                text = reader.ReadToEnd();
-            }
-            string extension = new FileInfo(file).Extension.ToLower();
-            File? line = lines.FirstOrDefault(i => i.extension == extension, null);
-            int numOfLines = text.Split("\n").Length;
-            long characters = text.ToCharArray().LongLength;
-            int numOfFiles = 1;
-            if (line != null)
-            {
-                numOfLines += line.lines;
-                characters += line.characters;
-                numOfFiles += line.files;
-                lines.Remove(line);
-            }
-            lines.Add(new(numOfLines, extension, characters, numOfFiles));
+                var extension = Path.GetExtension(file).ToLower();
+
+                if (!fileData.ContainsKey(extension))
+                {
+                    fileData[extension] = new FileData(0, extension, 0, 0);
+                }
+
+                var lines = 0L;
+                var characters = 0L;
+
+                using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, true))
+                using (var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, true))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        var line = await reader.ReadLineAsync();
+                        lines++;
+                        characters += line.Length;
+                    }
+                }
+
+                lock (fileData)
+                {
+                    fileData[extension] = fileData[extension] with
+                    {
+                        Lines = fileData[extension].Lines + (int)lines,
+                        Characters = fileData[extension].Characters + characters,
+                        Files = fileData[extension].Files + 1
+                    };
+                }
+            }));
         }
-        return lines.OrderByDescending(i => i.lines).ToArray();
+
+        await Task.WhenAll(tasks);
+
+        return fileData.Values.OrderByDescending(x => x.Lines).ToArray();
     }
 }
