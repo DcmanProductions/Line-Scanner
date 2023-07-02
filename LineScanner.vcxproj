@@ -173,14 +173,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="FileTypeList.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Scanner.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="FileType.h" />
-    <ClInclude Include="FileTypeList.h" />
-    <ClInclude Include="Scanner.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

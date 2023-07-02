@@ -1,71 +1,75 @@
 // LFInteractive LLC. - All Rights Reserved
-#include "Scanner.h"
 #include <iostream>
-#include <chrono>
-#include <cstdlib>
+#include <fstream>
+#include <filesystem>
+#include <vector>
+#include <string>
+#include <algorithm>
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
+namespace fs = std::filesystem;
 
-void parse_path(string& path)
+struct File
 {
-	if (path.front() == '"' && path.back() == '"')
-	{
-		path = path.substr(1, path.size() - 2);
-	}
-}
-void parse_arguments(int length, char* args[], vector<string>& arguments)
-{
-	for (int i = 0; i < length; i++)
-	{
-		string argument = args[i];
-		parse_path(argument);
-		arguments.push_back(argument);
-	}
-}
+	int lines;
+	std::string extension;
+	long characters;
+	int files;
+};
 
-int main(int length, char* args[])
+std::vector<File> GetLines(const std::vector<fs::path>& files)
 {
-	vector<string> arguments;
-	parse_arguments(length, args, arguments);
-
-	string path = "";
-	string filter = "";
-	if (length > 1)
+	std::cout << "Calculating lines from " << files.size() << " files" << std::endl;
+	std::vector<File> lines;
+	for (const auto& file : files)
 	{
-		path = string(args[1]);
-		if (length > 2)
+		std::string text;
+		std::ifstream ifs(file);
+		std::getline(ifs, text, '\0');
+		ifs.close();
+		std::string extension = file.extension().string();
+		auto iter = std::find_if(lines.begin(), lines.end(), [&](const File& f)
+			{
+				return f.extension == extension;
+			});
+		int numOfLines = std::count(text.begin(), text.end(), '\n');
+		long characters = text.length();
+		int numOfFiles = 1;
+		if (iter != lines.end())
 		{
-			filter = string(args[2]);
+			numOfLines += iter->lines;
+			characters += iter->characters;
+			numOfFiles += iter->files;
+			lines.erase(iter);
+		}
+		lines.push_back({ numOfLines, extension, characters, numOfFiles });
+	}
+	std::sort(lines.begin(), lines.end(), [](const File& f1, const File& f2)
+		{
+			return f1.lines > f2.lines;
+		});
+	return lines;
+}
+
+int main()
+{
+	auto time = std::chrono::high_resolution_clock::now();
+	std::vector<fs::path> files;
+	for (const auto& entry : fs::recursive_directory_iterator(fs::current_path()))
+	{
+		if (entry.is_regular_file())
+		{
+			files.push_back(entry.path());
 		}
 	}
-	else
+	auto lines = GetLines(files);
+	for (const auto& line : lines)
 	{
-		std::cout << "PATH: ";
-		std::getline(std::cin, path);
-		parse_path(path);
-		std::cout << "FILTER (LEAVE BLANK for NONE): ";
-		std::getline(std::cin, filter);
+		std::cout << "\033[1;32m" << line.extension << ":\033[0m" << std::endl;
+		std::cout << "\033[1;36m\t- " << line.lines << " Line(s)\033[0m" << std::endl;
+		std::cout << "\033[1;33m\t- " << line.characters << " Character(s)\033[0m" << std::endl;
+		std::cout << "\033[1;35m\t- " << line.files << " File(s)\033[0m" << std::endl;
 	}
-
-	auto start = std::chrono::high_resolution_clock::now();
-	std::cout << "\n\n\033[97mScanning \033[94m" << path << std::endl;
-	std::cout << "\033[33mThis might take a moment!" << std::endl;
-	vector<FileType*>* files = Scanner::scan(path, filter);
-	Scanner::print(files);
-	auto end = std::chrono::high_resolution_clock::now();
-	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-	std::cout << "\033[94mProcess finished after \033[92m" << duration << "ms" << "\033[0m" << std::endl;
-
-#ifdef _WIN32
-	if (GetConsoleWindow() != NULL)
-	{
-		std::system("pause");
-	}
-#else
-	std::system("read - p 'Press Enter to continue...' key");
-#endif
-
+	auto span = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - time);
+	std::cout << "Process finished after " << span.count() << "ms" << std::endl;
 	return 0;
 }

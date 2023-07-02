@@ -18,22 +18,5 @@
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scanner.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FileTypeList.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Scanner.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FileType.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FileTypeList.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
